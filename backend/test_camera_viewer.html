@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Safyra Camera Stream - Weapon Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .stream-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .stream {
+            max-width: 100%;
+            border: 2px solid #333;
+            border-radius: 5px;
+        }
+
+        .status {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔫 Safyra Weapon Detection - Live Stream</h1>
+
+        <div class="status">
+            <p><strong>Status:</strong> <span id="status">Loading...</span></p>
+            <p><strong>Instructions:</strong> Make sure to start camera monitoring via POST to /camera/start before
+                viewing this stream.</p>
+        </div>
+
+        <div class="stream-container">
+            <img id="stream" class="stream" src="http://localhost:5000/camera/stream"
+                alt="Camera stream will appear here" onload="showSuccess()" onerror="showError()">
+        </div>
+
+        <div class="status">
+            <p><strong>API Endpoints:</strong></p>
+            <ul>
+                <li>Start monitoring: POST /camera/start</li>
+                <li>Stop monitoring: POST /camera/stop</li>
+                <li>Check status: GET /camera/status</li>
+                <li>View stream: GET /camera/stream</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function showSuccess() {
+            document.getElementById('status').innerHTML = '<span class="success">Stream active ✅</span>';
+        }
+
+        function showError() {
+            document.getElementById('status').innerHTML =
+                '<span class="error">Stream not available ❌ - Start camera monitoring first!</span>';
+        }
+
+        // Check status on page load
+        fetch('http://localhost:5000/camera/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status && data.status.monitoring) {
+                    showSuccess();
+                } else {
+                    showError();
+                }
+            })
+            .catch(() => showError());
+    </script>
+</body>
+
+</html>

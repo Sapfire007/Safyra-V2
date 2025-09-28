@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safyra Camera Monitor</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .alert-card {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .danger-card {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .success-card {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .logs {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        .detection-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .info-item {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .connected {
+            color: #28a745;
+        }
+
+        .disconnected {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎥 Safyra Camera Monitor</h1>
+            <p>Real-time weapon detection monitoring system</p>
+        </div>
+
+        <div class="status-card">
+            <h3>Connection Status</h3>
+            <p>WebSocket: <span id="connection-status" class="disconnected">Disconnected</span></p>
+            <p>Server: <span id="server-status">Checking...</span></p>
+        </div>
+
+        <div class="controls">
+            <button id="start-btn" class="btn-primary" onclick="startMonitoring()">Start Camera</button>
+            <button id="stop-btn" class="btn-danger" onclick="stopMonitoring()">Stop Camera</button>
+            <button id="status-btn" class="btn-secondary" onclick="getStatus()">Get Status</button>
+            <button id="logs-btn" class="btn-secondary" onclick="getLogs()">Get Logs</button>
+        </div>
+
+        <div id="monitoring-status" class="success-card" style="display: none;">
+            <h3>📹 Camera Status</h3>
+            <div class="detection-info">
+                <div class="info-item">
+                    <strong>Monitoring</strong><br>
+                    <span id="is-monitoring">❌ Stopped</span>
+                </div>
+                <div class="info-item">
+                    <strong>Camera</strong><br>
+                    <span id="camera-connected">❌ Disconnected</span>
+                </div>
+                <div class="info-item">
+                    <strong>Weapon Detected</strong><br>
+                    <span id="weapon-detected">❌ No</span>
+                </div>
+                <div class="info-item">
+                    <strong>Duration</strong><br>
+                    <span id="detection-duration">0.0s</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="detection-alert" class="alert-card" style="display: none;">
+            <h3>⚠️ Weapon Detection Active</h3>
+            <p>Detection Duration: <span id="alert-duration" class="countdown">0.0</span> seconds</p>
+            <p>Detections: <span id="detection-count">0</span></p>
+            <div id="countdown-bar"
+                style="width: 100%; background: #dee2e6; border-radius: 10px; height: 20px; margin: 10px 0;">
+                <div id="countdown-fill"
+                    style="width: 0%; background: #ffc107; height: 100%; border-radius: 10px; transition: width 0.3s;">
+                </div>
+            </div>
+            <p><small>Alert will be logged after 5 seconds</small></p>
+        </div>
+
+        <div id="weapon-alert" class="danger-card" style="display: none;">
+            <h3>🚨 WEAPON ALERT!</h3>
+            <p>Weapon detected for more than 5 seconds!</p>
+            <p>Time: <span id="alert-time"></span></p>
+            <p>Duration: <span id="alert-final-duration"></span> seconds</p>
+        </div>
+
+        <div class="logs">
+            <h3>📋 Activity Log</h3>
+            <div id="log-container">
+                <div class="log-entry">System ready...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let lastAlertTime = 0;
+
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+
+            if (type === 'error') logEntry.style.color = '#dc3545';
+            if (type === 'success') logEntry.style.color = '#28a745';
+            if (type === 'warning') logEntry.style.color = '#ffc107';
+
+            container.appendChild(logEntry);
+            container.scrollTop = container.scrollHeight;
+
+            // Keep only last 50 entries
+            while (container.children.length > 50) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        function connectWebSocket() {
+            socket = io('http://localhost:5000');
+
+            socket.on('connect', () => {
+                document.getElementById('connection-status').textContent = 'Connected';
+                document.getElementById('connection-status').className = 'connected';
+                addLog('Connected to server', 'success');
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('connection-status').textContent = 'Disconnected';
+                document.getElementById('connection-status').className = 'disconnected';
+                addLog('Disconnected from server', 'error');
+            });
+
+            socket.on('weapon_detection', (data) => {
+                updateDetectionDisplay(data);
+            });
+
+            socket.on('weapon_alert', (data) => {
+                showWeaponAlert(data);
+            });
+
+            socket.on('status', (data) => {
+                updateStatusDisplay(data);
+            });
+        }
+
+        function updateDetectionDisplay(data) {
+            const alertDiv = document.getElementById('detection-alert');
+
+            if (data.detected) {
+                alertDiv.style.display = 'block';
+                document.getElementById('alert-duration').textContent = data.duration.toFixed(1);
+                document.getElementById('detection-count').textContent = data.count || 0;
+
+                // Update countdown bar
+                const progress = Math.min((data.duration / 5) * 100, 100);
+                document.getElementById('countdown-fill').style.width = progress + '%';
+
+                if (data.duration >= 5) {
+                    document.getElementById('countdown-fill').style.background = '#dc3545';
+                } else {
+                    document.getElementById('countdown-fill').style.background = '#ffc107';
+                }
+
+                addLog(`Weapon detected (${data.duration.toFixed(1)}s) - ${data.count} detections`, 'warning');
+            } else {
+                alertDiv.style.display = 'none';
+            }
+        }
+
+        function showWeaponAlert(data) {
+            const alertDiv = document.getElementById('weapon-alert');
+            const currentTime = Date.now();
+
+            // Prevent spam alerts
+            if (currentTime - lastAlertTime < 2000) return;
+            lastAlertTime = currentTime;
+
+            document.getElementById('alert-time').textContent = new Date(data.timestamp).toLocaleString();
+            document.getElementById('alert-final-duration').textContent = data.duration_seconds;
+
+            alertDiv.style.display = 'block';
+            addLog(`🚨 WEAPON ALERT! Duration: ${data.duration_seconds}s`, 'error');
+
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 10000);
+        }
+
+        function updateStatusDisplay(status) {
+            document.getElementById('monitoring-status').style.display = 'block';
+            document.getElementById('is-monitoring').textContent = status.monitoring ? '✅ Active' : '❌ Stopped';
+            document.getElementById('camera-connected').textContent = status.camera_connected ? '✅ Connected' :
+                '❌ Disconnected';
+            document.getElementById('weapon-detected').textContent = status.weapon_detected ? '⚠️ Yes' : '❌ No';
+            document.getElementById('detection-duration').textContent = status.detection_duration.toFixed(1) + 's';
+        }
+
+        async function startMonitoring() {
+            try {
+                const response = await fetch('http://localhost:5000/camera/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        camera_index: 0
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog('Camera monitoring started', 'success');
+                    updateStatusDisplay(data.status);
+                } else {
+                    addLog('Failed to start camera: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('Error starting camera: ' + error.message, 'error');
+            }
+        }
+
+        async function stopMonitoring() {
+            try {
+                const response = await fetch('http://localhost:5000/camera/stop', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addLog('Camera monitoring stopped', 'success');
+                    updateStatusDisplay(data.status);
+                    document.getElementById('detection-alert').style.display = 'none';
+                } else {
+                    addLog('Failed to stop camera: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('Error stopping camera: ' + error.message, 'error');
+            }
+        }
+
+        async function getStatus() {
+            try {
+                const response = await fetch('http://localhost:5000/camera/status');
+                const data = await response.json();
+
+                if (data.success) {
+                    updateStatusDisplay(data.status);
+                    addLog('Status updated', 'info');
+                } else {
+                    addLog('Failed to get status: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('Error getting status: ' + error.message, 'error');
+            }
+        }
+
+        async function getLogs() {
+            try {
+                const response = await fetch('http://localhost:5000/logs/weapon-alerts');
+                const data = await response.json();
+
+                if (data.success) {
+                    addLog(`Found ${data.count} alerts for today`, 'info');
+                    data.alerts.slice(-5).forEach(alert => {
+                        const time = new Date(alert.timestamp).toLocaleTimeString();
+                        addLog(`Alert: ${time} - ${alert.duration_seconds}s (${alert.detection_count} detections)`,
+                            'warning');
+                    });
+                } else {
+                    addLog('Failed to get logs: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('Error getting logs: ' + error.message, 'error');
+            }
+        }
+
+        async function checkServer() {
+            try {
+                const response = await fetch('http://localhost:5000/');
+                const data = await response.json();
+
+                document.getElementById('server-status').textContent = data.status;
+                document.getElementById('server-status').style.color = '#28a745';
+
+                addLog('Server health check passed', 'success');
+            } catch (error) {
+                document.getElementById('server-status').textContent = 'Offline';
+                document.getElementById('server-status').style.color = '#dc3545';
+                addLog('Server is offline', 'error');
+            }
+        }
+
+        // Initialize on page load
+        window.onload = () => {
+            addLog('Initializing Safyra Camera Monitor...', 'info');
+            checkServer();
+            connectWebSocket();
+        };
+    </script>
+</body>
+
+</html>
