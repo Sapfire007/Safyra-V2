@@ -15,6 +15,7 @@ import {
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -24,11 +25,12 @@ interface DashboardLayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Battery Status', href: '/dashboard', icon: HomeIcon },
   { name: 'Live SOS', href: '/dashboard/sos', icon: BellAlertIcon },
+  { name: 'Panic Mode', href: '/dashboard/panic', icon: ExclamationTriangleIcon },
   { name: 'Incident History', href: '/dashboard/history', icon: ClockIcon },
   { name: 'Emergency Contacts', href: '/dashboard/contacts', icon: UserGroupIcon },
-  { name: 'Device Management', href: '/dashboard/devices', icon: ShieldCheckIcon },
+  { name: 'Device Simulation', href: '/dashboard/devices', icon: ShieldCheckIcon },
   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ];
 
@@ -102,10 +104,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </div>
                 </Transition.Child>
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
-                  <div className="flex h-16 shrink-0 items-center">
+                  <Link href="/" className="flex h-16 shrink-0 items-center hover:opacity-80 transition-opacity">
                     <ShieldCheckIcon className="h-8 w-8 text-rose-600" />
                     <span className="ml-2 text-xl font-bold text-gray-900">Safyra</span>
-                  </div>
+                  </Link>
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
@@ -139,10 +141,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
+          <Link href="/" className="flex h-16 shrink-0 items-center hover:opacity-80 transition-opacity">
             <ShieldCheckIcon className="h-8 w-8 text-rose-600" />
             <span className="ml-2 text-xl font-bold text-gray-900">Safyra</span>
-          </div>
+          </Link>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>

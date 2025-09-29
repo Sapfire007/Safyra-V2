@@ -28,6 +28,7 @@ import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
+import { addDeviceAlertToHistory } from '../../../lib/incidentService';
 
 interface CameraStatus {
   monitoring: boolean;
@@ -84,6 +85,7 @@ export default function DevicesPage() {
   const [backendHealth, setBackendHealth] = useState<any>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const socketRef = useRef<any>(null);
   const videoRef = useRef<HTMLImageElement>(null);
   const monitoringRef = useRef(cameraStatus.monitoring);
@@ -97,12 +99,12 @@ export default function DevicesPage() {
     socketRef.current = io(BACKEND_URL);
 
     socketRef.current.on('connect', () => {
-      console.log('Connected to weapon detection system');
+      // Connected to weapon detection system (suppressed log)
     });
 
     socketRef.current.on('weapon_detection', (data: LiveDetection) => {
       setLiveDetection(data);
-      console.log('Detection update:', data);
+      // Suppress detection update logs to reduce console spam
       if (data.detected && data.duration > 0) {
         setCameraStatus(prev => ({
           ...prev,
@@ -121,6 +123,9 @@ export default function DevicesPage() {
     socketRef.current.on('weapon_alert', (alert: WeaponAlert) => {
       setRecentAlerts(prev => [alert, ...prev.slice(0, 9)]); // Keep last 10 alerts
       toast.error(`⚠️ WEAPON DETECTED: ${alert.detection_count} weapon(s) detected for ${alert.duration_seconds}s`);
+
+      // Add alert to incident history
+      addDeviceAlertToHistory(alert);
     });
 
     socketRef.current.on('status', (status: CameraStatus) => {
@@ -155,20 +160,20 @@ export default function DevicesPage() {
     // Update video stream when monitoring starts
     if (cameraStatus.monitoring && videoRef.current) {
       const streamUrl = `${BACKEND_URL}/camera/stream?t=${Date.now()}`;
-      console.log('Setting video stream URL:', streamUrl);
+      // Setting video stream URL (suppressed log)
 
       videoRef.current.onloadstart = () => {
-        console.log('Video stream loading started');
+        // Video stream loading started (suppressed log)
       };
 
       videoRef.current.onloadeddata = () => {
-        console.log('Video stream loaded successfully');
+        // Video stream loaded successfully (suppressed log)
       };
 
       videoRef.current.onerror = (e) => {
         if (!monitoringRef.current) return; // Ignore errors if monitoring is stopped
-        console.error('Video stream error:', e);
-        toast.error('Failed to load video stream. Check camera connection.');
+        // Suppress video stream errors - they are handled elsewhere
+        setStreamError('Video stream unavailable');
       };
 
       videoRef.current.src = streamUrl;
@@ -193,7 +198,10 @@ export default function DevicesPage() {
         setCameraStatus(data.status);
       }
     } catch (error) {
-      console.error('Failed to load camera status:', error);
+      // Suppress non-critical camera status errors
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Camera status check failed:', error);
+      }
     }
   };
 
@@ -206,7 +214,10 @@ export default function DevicesPage() {
         setRecentAlerts(data.alerts.slice(-10).reverse()); // Last 10 alerts, most recent first
       }
     } catch (error) {
-      console.error('Failed to load recent alerts:', error);
+      // Suppress non-critical alerts loading errors
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Recent alerts loading failed:', error);
+      }
     }
   };
 
@@ -218,7 +229,10 @@ export default function DevicesPage() {
         setAlertsSummary(data);
       }
     } catch (error) {
-      console.error('Failed to load alerts summary:', error);
+      // Suppress non-critical alerts summary errors
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Alerts summary loading failed:', error);
+      }
     }
   };
 
@@ -231,7 +245,10 @@ export default function DevicesPage() {
         setRecordings(data.recordings);
         console.log('Recordings loaded:', data.recordings.length);
       } else {
-        console.error('Failed to load recordings:', data.error);
+        // Suppress recording loading errors
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to load recordings:', data.error);
+        }
       }
     } catch (error) {
       console.error('Failed to load recordings:', error);
@@ -295,7 +312,10 @@ export default function DevicesPage() {
         setBackendHealth({ status: 'error', message: `Backend returned status ${response.status}` });
       }
     } catch (error) {
-      console.error('Backend connection test failed:', error);
+      // Suppress connection test errors - handled by UI state
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Backend connection test failed:', error);
+      }
       setBackendHealth({ status: 'error', message: 'Connection failed' });
     }
   };
@@ -303,7 +323,7 @@ export default function DevicesPage() {
   const startMonitoring = async () => {
     setIsLoading(true);
     try {
-      console.log(`Starting camera monitoring on camera ${selectedCamera}...`);
+      // Starting camera monitoring (suppressed log)
       const response = await fetch(`${BACKEND_URL}/camera/start`, {
         method: 'POST',
         headers: {
@@ -313,7 +333,7 @@ export default function DevicesPage() {
       });
 
       const data = await response.json();
-      console.log('Camera start response:', data);
+      // Camera start response (suppressed log)
 
       if (data.success) {
         setCameraStatus(data.status);
@@ -322,11 +342,16 @@ export default function DevicesPage() {
         const url = `${BACKEND_URL}/camera/stream?t=${Date.now()}&r=${Math.random()}`;
         setStreamUrl(url);
         setStreamError(null);
+        setRetryCount(0); // Reset retry count when starting fresh
       } else {
         toast.error(data.error || 'Failed to start monitoring');
       }
     } catch (error) {
-      console.error('Failed to start monitoring:', error);
+      // Only log in development, suppress in production
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to start monitoring:', error);
+      }
+      toast.error('Failed to start camera monitoring');
     } finally {
       setIsLoading(false);
     }
@@ -334,6 +359,8 @@ export default function DevicesPage() {
 
   const stopMonitoring = async () => {
     setIsLoading(true);
+    setRetryCount(0); // Reset retry count
+    setStreamUrl(null); // Clear stream URL to stop retries
     try {
       const response = await fetch(`${BACKEND_URL}/camera/stop`, {
         method: 'POST',
@@ -354,7 +381,11 @@ export default function DevicesPage() {
         toast.error(data.error || 'Failed to stop monitoring');
       }
     } catch (error) {
-      console.error('Failed to stop monitoring:', error);
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to stop monitoring:', error);
+      }
+      toast.error('Failed to stop monitoring');
     } finally {
       setIsLoading(false);
     }
@@ -584,19 +615,23 @@ export default function DevicesPage() {
                           objectFit: 'contain'
                         }}
                         onLoad={() => {
-                          console.log('Video stream loaded successfully:', streamUrl);
+                          // Video stream loaded successfully (suppressed log)
                           setStreamError(null);
                         }}
                         onError={(e) => {
                           if (!monitoringRef.current) return; // Ignore errors if monitoring is stopped
-                          console.error('Video stream error:', e, 'URL:', streamUrl);
-                          setStreamError('Failed to load video stream');
-                          // Retry with new URL after delay
-                          setTimeout(() => {
-                            const retryUrl = `${BACKEND_URL}/camera/stream?retry=${Date.now()}&r=${Math.random()}`;
-                            setStreamUrl(retryUrl);
-                          }, 2000);
-                          toast.error('Video stream failed. Retrying...');
+                          // Only show error, no console spam or automatic retries
+                          setStreamError('Video stream unavailable');
+                          // Only retry if still monitoring and not too many retries
+                          if (monitoringRef.current && retryCount < 3) {
+                            setTimeout(() => {
+                              if (monitoringRef.current) {
+                                const retryUrl = `${BACKEND_URL}/camera/stream?retry=${Date.now()}&r=${Math.random()}`;
+                                setStreamUrl(retryUrl);
+                                setRetryCount(prev => prev + 1);
+                              }
+                            }, 3000);
+                          }
                         }}
                       />
                     ) : (
@@ -1059,10 +1094,13 @@ export default function DevicesPage() {
                   className="w-full h-auto"
                   preload="auto"
                   controlsList="nodownload"
-                  onLoadStart={() => console.log('Video loading started')}
-                  onLoadedData={() => console.log('Video loaded successfully')}
+                  onLoadStart={() => {/* Video loading started */}}
+                  onLoadedData={() => {/* Video loaded successfully */}}
                   onError={(e) => {
-                    console.error('Video error:', e);
+                    // Suppress video playback errors in console
+                    if (process.env.NODE_ENV === 'development') {
+                      console.warn('Video playback issue:', e);
+                    }
                     toast.error('Cannot play this video format. Try downloading to view locally.');
                   }}
                 >

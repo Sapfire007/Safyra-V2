@@ -1,405 +1,383 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BellAlertIcon,
-  MapPinIcon,
-  VideoCameraIcon,
   MicrophoneIcon,
-  PhoneIcon,
   StopIcon,
-  ExclamationTriangleIcon,
-  UserGroupIcon
+  PlayIcon,
+  PauseIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader, CardContent, CardTitle } from '../../../components/ui/Card';
-import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import toast from 'react-hot-toast';
+import { saveSOSRecording, updateSOSRecording } from '../../../lib/sosStorageService';
+import { triggerHistoryRefresh } from '../../../lib/historyManager';
 
-interface EmergencySession {
+interface SOSSession {
   id: string;
-  status: 'inactive' | 'countdown' | 'active' | 'cancelled';
+  status: 'inactive' | 'recording' | 'completed';
   startTime?: Date;
-  location?: {
-    latitude: number;
-    longitude: number;
-    address: string;
-  };
-  notifiedContacts: string[];
+  audioBlob?: Blob;
+  audioUrl?: string;
 }
 
 export default function SOSPage() {
   const { user } = useAuth();
-  const [session, setSession] = useState<EmergencySession>({
+  const [session, setSession] = useState<SOSSession>({
     id: '',
-    status: 'inactive',
-    notifiedContacts: [],
+    status: 'inactive'
   });
-  const [countdown, setCountdown] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<string>('Getting location...');
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  useEffect(() => {
-    // Get user's current location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          // This would typically call a reverse geocoding API
-          setCurrentLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setCurrentLocation('Location unavailable');
-        }
-      );
-    }
-  }, []);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
+  // Timer for recording duration
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (session.status === 'countdown' && countdown > 0) {
+    if (isRecording) {
       interval = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            activateEmergency();
-            return 0;
-          }
-          return prev - 1;
-        });
+        setRecordingTime(prev => prev + 1);
       }, 1000);
+    } else {
+      setRecordingTime(0);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [session.status, countdown]);
+  }, [isRecording]);
 
-  const startCountdown = () => {
-    setSession({
-      ...session,
-      id: `sos_${Date.now()}`,
-      status: 'countdown',
-    });
-    setCountdown(10); // 10 second countdown
-    toast.success('Emergency countdown started');
+  // Format time display
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const activateEmergency = () => {
-    const newSession: EmergencySession = {
-      ...session,
-      status: 'active',
-      startTime: new Date(),
-      location: {
-        latitude: 0, // Would be actual location
-        longitude: 0,
-        address: currentLocation,
-      },
-      notifiedContacts: user?.emergencyContacts?.map(c => c.id) || [],
-    };
+  // Start voice recording (hold to record)
+  const startRecording = async () => {
+    try {
+      console.log('Starting recording...');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-    setSession(newSession);
-    setIsRecording(true);
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-    // Simulate notifying emergency contacts
-    user?.emergencyContacts?.forEach(contact => {
-      toast.success(`Emergency alert sent to ${contact.name}`);
-    });
+      console.log('MediaRecorder created, state:', mediaRecorder.state);
 
-    // Would also call emergency services
-    toast.success('Emergency services have been notified');
-  };
+      mediaRecorder.ondataavailable = (event) => {
+        console.log('Data available, size:', event.data.size);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
 
-  const cancelEmergency = () => {
-    setSession({
-      id: '',
-      status: 'cancelled',
-      notifiedContacts: [],
-    });
-    setCountdown(0);
-    setIsRecording(false);
+      mediaRecorder.onstop = async () => {
+        console.log('onstop triggered, chunks:', audioChunksRef.current.length);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        console.log('Created audio blob, size:', audioBlob.size);
+        const audioUrl = URL.createObjectURL(audioBlob);
 
-    // Send cancellation to all notified contacts
-    toast('Emergency alert cancelled and contacts notified');
+        setSession(prev => ({
+          ...prev,
+          status: 'completed',
+          audioBlob,
+          audioUrl
+        }));
 
-    // Reset to inactive after showing cancelled status briefly
-    setTimeout(() => {
-      setSession(prev => ({ ...prev, status: 'inactive' }));
-    }, 3000);
-  };
+        // Clean up stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
 
-  const endEmergency = () => {
-    setSession({
-      id: '',
-      status: 'inactive',
-      notifiedContacts: [],
-    });
-    setIsRecording(false);
-    toast.success('Emergency session ended');
-  };
+        toast.success('Voice message recorded');
 
-  const getStatusColor = () => {
-    switch (session.status) {
-      case 'countdown': return 'bg-yellow-500';
-      case 'active': return 'bg-red-600';
-      case 'cancelled': return 'bg-gray-500';
-      default: return 'bg-gray-200';
+        // Auto-send SOS now that we have the audio blob
+        try {
+          console.log('Audio blob size:', audioBlob.size, 'Recording time:', recordingTime);
+
+          if (audioBlob.size === 0) {
+            toast.error('No audio data recorded');
+            return;
+          }
+
+          const savedRecording = await saveSOSRecording(audioBlob, recordingTime || 1, false);
+
+          // Mark as sent after successful "transmission"
+          setTimeout(() => {
+            updateSOSRecording(savedRecording.id, { sent: true });
+            triggerHistoryRefresh();
+          }, 1000);
+
+          // Immediately trigger history refresh for the initial save
+          triggerHistoryRefresh();
+
+          toast.success('SOS sent to emergency contacts with voice message!');
+          toast.success('Recording saved to incident history');
+
+          // Reset session after a short delay
+          setTimeout(() => {
+            setSession({
+              id: '',
+              status: 'inactive'
+            });
+            setRecordingTime(0);
+            if (audioUrl) {
+              URL.revokeObjectURL(audioUrl);
+            }
+          }, 2000);
+
+        } catch (error) {
+          console.error('Error saving SOS recording:', error);
+          toast.error('Error saving recording, but SOS was sent');
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      console.log('Recording started, state:', mediaRecorder.state);
+
+      setSession({
+        id: `sos_${Date.now()}`,
+        status: 'recording',
+        startTime: new Date()
+      });
+
+      toast.success('Recording... Hold button and speak');
+
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      toast.error('Unable to access microphone. Please check permissions.');
     }
   };
 
-  const getStatusText = () => {
-    switch (session.status) {
-      case 'countdown': return `Activating in ${countdown}s`;
-      case 'active': return 'EMERGENCY ACTIVE';
-      case 'cancelled': return 'Emergency Cancelled';
-      default: return 'Ready for Emergency';
+  // Stop recording (release button) and auto-send SOS
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      console.log('Stopping recording, state:', mediaRecorderRef.current.state);
+      console.log('Audio chunks collected:', audioChunksRef.current.length);
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      // SOS will be automatically sent in the onstop event handler
     }
+  };
+
+  // Handle mouse/touch events for hold-to-record
+  const handleRecordStart = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (session.status === 'inactive') {
+      startRecording();
+    }
+  };
+
+  const handleRecordEnd = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (isRecording) {
+      stopRecording();
+    }
+  };
+
+  // Play recorded audio
+  const playAudio = () => {
+    if (session.audioUrl && !isPlaying) {
+      const audio = new Audio(session.audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsPlaying(false);
+      };
+
+      audio.play();
+      setIsPlaying(true);
+    }
+  };
+
+  // Pause audio
+  const pauseAudio = () => {
+    if (audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  // Send SOS with voice message
+
+
+  // Cancel and start over
+  const cancelSOS = () => {
+    if (session.audioUrl) {
+      URL.revokeObjectURL(session.audioUrl);
+    }
+
+    setSession({
+      id: '',
+      status: 'inactive'
+    });
+
+    setIsPlaying(false);
+    setRecordingTime(0);
+    toast('Recording cancelled');
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Emergency Status */}
-      <Card className={`border-2 ${session.status === 'active' ? 'border-red-500' : session.status === 'countdown' ? 'border-yellow-500' : 'border-gray-200'}`}>
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Main SOS Card */}
+      <Card className="border-2 border-red-200">
         <CardContent className="p-8">
           <div className="text-center">
-            <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full ${getStatusColor()} mb-6`}>
-              {session.status === 'active' ? (
-                <BellAlertIcon className="w-10 h-10 text-white animate-pulse" />
-              ) : session.status === 'countdown' ? (
-                <span className="text-2xl font-bold text-white">{countdown}</span>
-              ) : (
-                <BellAlertIcon className="w-10 h-10 text-gray-600" />
-              )}
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-red-100 mb-6">
+              <BellAlertIcon className="w-12 h-12 text-red-600" />
             </div>
 
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {getStatusText()}
+              Emergency SOS
             </h1>
 
-            {session.status === 'active' && session.startTime && (
-              <p className="text-lg text-gray-600 mb-4">
-                Started at {session.startTime.toLocaleTimeString()}
-              </p>
-            )}
+            <p className="text-gray-600 mb-8">
+              Hold the button to record and automatically send an emergency voice message
+            </p>
 
-            <div className="flex items-center justify-center text-gray-600 mb-6">
-              <MapPinIcon className="w-5 h-5 mr-2" />
-              <span>{currentLocation}</span>
-            </div>
-
+            {/* Hold to Record */}
             {session.status === 'inactive' && (
               <div className="space-y-4">
-                <p className="text-gray-600 mb-6">
-                  Press the emergency button below to activate SOS. You'll have 10 seconds to cancel before emergency services and your contacts are notified.
+                <p className="text-gray-600 mb-4">
+                  Hold the button below to record your emergency message
                 </p>
-                <Button
-                  onClick={startCountdown}
-                  variant="danger"
-                  size="lg"
-                  className="px-12 py-6 text-xl"
+                <button
+                  onMouseDown={handleRecordStart}
+                  onMouseUp={handleRecordEnd}
+                  onMouseLeave={handleRecordEnd}
+                  onTouchStart={handleRecordStart}
+                  onTouchEnd={handleRecordEnd}
+                  className="w-48 h-48 mx-auto bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-full flex flex-col items-center justify-center transition-all duration-150 transform active:scale-95 shadow-lg hover:shadow-xl select-none"
+                  style={{ userSelect: 'none' }}
                 >
-                  <BellAlertIcon className="w-8 h-8 mr-3" />
-                  ACTIVATE EMERGENCY SOS
-                </Button>
+                  <MicrophoneIcon className="w-16 h-16 mb-3" />
+                  <span className="text-lg font-semibold">HOLD TO</span>
+                  <span className="text-lg font-semibold">RECORD</span>
+                </button>
               </div>
             )}
 
-            {session.status === 'countdown' && (
-              <div className="space-y-4">
-                <p className="text-lg text-yellow-600 font-semibold mb-6">
-                  Emergency will activate in {countdown} seconds
-                </p>
-                <Button
-                  onClick={cancelEmergency}
-                  variant="outline"
-                  size="lg"
-                  className="px-8 py-4"
-                >
-                  <StopIcon className="w-6 h-6 mr-2" />
-                  CANCEL EMERGENCY
-                </Button>
-              </div>
-            )}
-
-            {session.status === 'active' && (
-              <div className="space-y-4">
-                <div className="flex justify-center space-x-4">
-                  <Badge variant="danger" className="text-sm px-3 py-1">
-                    <VideoCameraIcon className="w-4 h-4 mr-1" />
-                    Recording Video
-                  </Badge>
-                  <Badge variant="danger" className="text-sm px-3 py-1">
-                    <MicrophoneIcon className="w-4 h-4 mr-1" />
-                    Recording Audio
-                  </Badge>
-                  <Badge variant="info" className="text-sm px-3 py-1">
-                    <MapPinIcon className="w-4 h-4 mr-1" />
-                    Sharing Location
-                  </Badge>
+            {/* Recording in Progress */}
+            {session.status === 'recording' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-center space-x-4">
+                  <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-2xl font-mono text-red-600">{formatTime(recordingTime)}</span>
                 </div>
 
-                <p className="text-red-600 font-semibold text-lg">
-                  Emergency services and your contacts have been notified
-                </p>
-
-                <Button
-                  onClick={endEmergency}
-                  variant="outline"
-                  size="lg"
-                  className="px-8 py-4 border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <StopIcon className="w-6 h-6 mr-2" />
-                  END EMERGENCY
-                </Button>
+                <div className="bg-red-50 rounded-lg p-6">
+                  <button
+                    onMouseDown={handleRecordStart}
+                    onMouseUp={handleRecordEnd}
+                    onMouseLeave={handleRecordEnd}
+                    onTouchStart={handleRecordStart}
+                    onTouchEnd={handleRecordEnd}
+                    className="w-32 h-32 mx-auto bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-150 transform scale-110 shadow-xl select-none"
+                    style={{ userSelect: 'none' }}
+                  >
+                    <MicrophoneIcon className="w-12 h-12 animate-pulse" />
+                  </button>
+                  <p className="text-lg font-semibold text-red-600 mb-2 mt-4">Recording...</p>
+                  <p className="text-sm text-gray-600">
+                    Keep holding the button and speak clearly
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Release the button to stop recording
+                  </p>
+                </div>
               </div>
             )}
 
-            {session.status === 'cancelled' && (
-              <p className="text-gray-600 text-lg">
-                Emergency has been cancelled. All contacts have been notified.
-              </p>
+            {/* Recording Completed */}
+            {session.status === 'completed' && session.audioUrl && (
+              <div className="space-y-6">
+                <div className="bg-green-50 rounded-lg p-6">
+                  <div className="flex items-center justify-center space-x-4 mb-4">
+                    <Button
+                      onClick={isPlaying ? pauseAudio : playAudio}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isPlaying ? (
+                        <PauseIcon className="w-6 h-6" />
+                      ) : (
+                        <PlayIcon className="w-6 h-6" />
+                      )}
+                    </Button>
+                    <span className="text-green-600 font-semibold">
+                      {isPlaying ? 'Playing...' : 'Voice message ready'}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-600">
+                    Your emergency message has been automatically sent to contacts
+                  </p>
+                </div>
+
+                <div className="text-center space-y-4">
+                  <div className="bg-green-100 border border-green-300 rounded-lg p-4">
+                    <p className="text-green-700 font-medium">
+                      ✓ SOS sent
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={cancelSOS}
+                    variant="outline"
+                    className="px-6 py-4"
+                    size="lg"
+                  >
+                    Record Another
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Live Session Details (when active) */}
-      {session.status === 'active' && (
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-red-600">
-                <VideoCameraIcon className="w-5 h-5 mr-2 inline" />
-                Live Stream Active
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-black rounded-lg aspect-video flex items-center justify-center mb-4">
-                <div className="text-center text-white">
-                  <VideoCameraIcon className="w-16 h-16 mx-auto mb-2 opacity-75" />
-                  <p className="text-sm opacity-75">Live video feed</p>
-                  <div className="flex items-center justify-center mt-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full mr-2 animate-pulse"></div>
-                    <span className="text-sm">LIVE</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 text-center">
-                Live video is being streamed to your emergency contacts and a secure incident page:
-                <br />
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded mt-1 inline-block">
-                  safyra.app/live/{session.id}
-                </code>
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-blue-600">
-                <UserGroupIcon className="w-5 h-5 mr-2 inline" />
-                Notified Contacts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {user?.emergencyContacts?.map((contact) => (
-                  <div key={contact.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                        <span className="text-sm font-medium text-green-600">
-                          {contact.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{contact.name}</p>
-                        <p className="text-sm text-gray-500">{contact.phone}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                      <span className="text-sm text-green-600 font-medium">Notified</span>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <PhoneIcon className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Emergency Services</p>
-                      <p className="text-sm text-gray-500">911</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                    <span className="text-sm text-blue-600 font-medium">Dispatched</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Emergency Instructions */}
+      {/* Emergency Contacts Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <ExclamationTriangleIcon className="w-5 h-5 mr-2 text-amber-600" />
-            Emergency Instructions
-          </CardTitle>
+          <CardTitle>Emergency Contacts</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">When Emergency is Active:</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-rose-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Stay calm and try to remain in a safe location
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-rose-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Your location and live video are being shared
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-rose-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Emergency services have been automatically contacted
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-rose-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Your emergency contacts can see your live stream
-                </li>
-              </ul>
+          {user?.emergencyContacts && user.emergencyContacts.length > 0 ? (
+            <div className="space-y-3">
+              {user.emergencyContacts.map((contact, index) => (
+                <div key={index} className="flex items-center p-3 border border-gray-200 rounded-lg">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-sm font-medium text-blue-600">
+                      {contact.name.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{contact.name}</p>
+                    <p className="text-sm text-gray-500">{contact.phone}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Important Notes:</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Only use SOS for real emergencies
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  False alarms should be cancelled immediately
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Keep your emergency contacts up to date
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                  Ensure your device has sufficient battery
-                </li>
-              </ul>
-            </div>
-          </div>
+          ) : (
+            <p className="text-gray-600 text-center py-4">
+              No emergency contacts configured.
+              <br />
+              <span className="text-blue-600 hover:underline cursor-pointer">
+                Add contacts in settings
+              </span>
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

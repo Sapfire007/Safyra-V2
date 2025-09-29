@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ClockIcon,
   BellAlertIcon,
@@ -8,86 +8,63 @@ import {
   ExclamationTriangleIcon,
   MapPinIcon,
   EyeIcon,
-  ChevronDownIcon,
   MagnifyingGlassIcon,
-  CalendarIcon
+  CalendarIcon,
+  MicrophoneIcon,
+  VideoCameraIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader, CardContent, CardTitle } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { fetchIncidentHistory, getIncidentStats, IncidentHistory } from '../../../lib/incidentService';
+import { historyUpdateManager } from '../../../lib/historyManager';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
-
-interface HistoryIncident {
-  id: string;
-  type: 'weapon_detected' | 'panic_button' | 'fall_detection' | 'test_alert';
-  status: 'resolved' | 'false_alarm' | 'active';
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  timestamp: Date;
-  location: string;
-  responseTime: number; // in seconds
-  responders: number;
-  description: string;
-}
 
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [incidents, setIncidents] = useState<IncidentHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
 
-  const mockIncidents: HistoryIncident[] = [
-    {
-      id: 'inc_1',
-      type: 'test_alert',
-      status: 'resolved',
-      severity: 'low',
-      timestamp: new Date(2024, 11, 25, 14, 30),
-      location: 'Home - 123 Main St',
-      responseTime: 15,
-      responders: 2,
-      description: 'Monthly system test - all systems operational',
-    },
-    {
-      id: 'inc_2',
-      type: 'panic_button',
-      status: 'false_alarm',
-      severity: 'high',
-      timestamp: new Date(2024, 11, 20, 22, 15),
-      location: 'Downtown Office',
-      responseTime: 45,
-      responders: 4,
-      description: 'Accidental activation - cancelled within 30 seconds',
-    },
-    {
-      id: 'inc_3',
-      type: 'weapon_detected',
-      status: 'resolved',
-      severity: 'critical',
-      timestamp: new Date(2024, 11, 15, 18, 45),
-      location: 'University Campus',
-      responseTime: 120,
-      responders: 8,
-      description: 'Weapon detected on campus - security responded immediately',
-    },
-    {
-      id: 'inc_4',
-      type: 'fall_detection',
-      status: 'resolved',
-      severity: 'medium',
-      timestamp: new Date(2024, 11, 10, 9, 20),
-      location: 'Gym - Fitness Center',
-      responseTime: 90,
-      responders: 3,
-      description: 'Fall detected during workout - minor injury, medical assistance provided',
-    },
-  ];
+  // Function to load incidents
+  const loadIncidents = async () => {
+    try {
+      setLoading(true);
+      console.log('Loading incidents...');
+      const data = await fetchIncidentHistory();
+      console.log('Loaded incidents:', data.length);
+      setIncidents(data);
+      setStats(getIncidentStats(data));
+    } catch (error) {
+      console.error('Error loading incidents:', error);
+      toast.error('Failed to load incident history');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch incidents on component mount and listen for updates
+  useEffect(() => {
+    loadIncidents();
+
+    // Subscribe to history updates
+    const unsubscribe = historyUpdateManager.subscribe(() => {
+      console.log('History update triggered, reloading incidents...');
+      loadIncidents();
+    });
+
+    // Cleanup subscription
+    return unsubscribe;
+  }, []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'weapon_detected': return ExclamationTriangleIcon;
-      case 'panic_button': return BellAlertIcon;
-      case 'fall_detection': return ExclamationTriangleIcon;
-      case 'test_alert': return CheckCircleIcon;
+      case 'sos_call': return MicrophoneIcon;
       default: return ClockIcon;
     }
   };
@@ -95,9 +72,7 @@ export default function HistoryPage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'weapon_detected': return 'text-red-600 bg-red-100';
-      case 'panic_button': return 'text-yellow-600 bg-yellow-100';
-      case 'fall_detection': return 'text-orange-600 bg-orange-100';
-      case 'test_alert': return 'text-green-600 bg-green-100';
+      case 'sos_call': return 'text-purple-600 bg-purple-100';
       default: return 'text-gray-600 bg-gray-100';
     }
   };
@@ -105,8 +80,8 @@ export default function HistoryPage() {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'resolved': return 'success';
-      case 'false_alarm': return 'warning';
       case 'active': return 'danger';
+      case 'investigating': return 'warning';
       default: return 'default';
     }
   };
@@ -121,7 +96,7 @@ export default function HistoryPage() {
     }
   };
 
-  const filteredIncidents = mockIncidents.filter(incident => {
+  const filteredIncidents = incidents.filter((incident: IncidentHistory) => {
     const matchesSearch = incident.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          incident.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          incident.type.replace('_', ' ').toLowerCase().includes(searchTerm.toLowerCase());
@@ -132,12 +107,7 @@ export default function HistoryPage() {
     return matchesSearch && matchesStatus && matchesSeverity;
   });
 
-  const formatDuration = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
-  };
+
 
   return (
     <div className="space-y-6">
@@ -170,7 +140,7 @@ export default function HistoryPage() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total Incidents</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{mockIncidents.length}</dd>
+                  <dd className="text-lg font-semibold text-gray-900">{stats?.total || 0}</dd>
                 </dl>
               </div>
             </div>
@@ -189,7 +159,7 @@ export default function HistoryPage() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Resolved</dt>
                   <dd className="text-lg font-semibold text-gray-900">
-                    {mockIncidents.filter(i => i.status === 'resolved').length}
+                    {stats?.resolved || 0}
                   </dd>
                 </dl>
               </div>
@@ -207,9 +177,9 @@ export default function HistoryPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">False Alarms</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Weapon Alerts</dt>
                   <dd className="text-lg font-semibold text-gray-900">
-                    {mockIncidents.filter(i => i.status === 'false_alarm').length}
+                    {stats?.weaponDetections || 0}
                   </dd>
                 </dl>
               </div>
@@ -227,9 +197,9 @@ export default function HistoryPage() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Avg Response</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">SOS Calls</dt>
                   <dd className="text-lg font-semibold text-gray-900">
-                    {formatDuration(Math.round(mockIncidents.reduce((acc, i) => acc + i.responseTime, 0) / mockIncidents.length))}
+                    {stats?.sosCalls || 0}
                   </dd>
                 </dl>
               </div>
@@ -241,7 +211,7 @@ export default function HistoryPage() {
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="md:col-span-2">
               <Input
                 placeholder="Search incidents..."
@@ -253,6 +223,16 @@ export default function HistoryPage() {
             </div>
 
             <div>
+              <Button
+                onClick={loadIncidents}
+                variant="outline"
+                className="w-full"
+              >
+                Refresh
+              </Button>
+            </div>
+
+            <div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -260,8 +240,8 @@ export default function HistoryPage() {
               >
                 <option value="all">All Statuses</option>
                 <option value="resolved">Resolved</option>
-                <option value="false_alarm">False Alarm</option>
                 <option value="active">Active</option>
+                <option value="investigating">Investigating</option>
               </select>
             </div>
 
@@ -289,7 +269,12 @@ export default function HistoryPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredIncidents.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-safyra-gold mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading incident history...</p>
+              </div>
+            ) : filteredIncidents.length === 0 ? (
               <div className="text-center py-12">
                 <ClockIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No incidents found</h3>
@@ -301,7 +286,7 @@ export default function HistoryPage() {
                 </p>
               </div>
             ) : (
-              filteredIncidents.map((incident) => {
+              filteredIncidents.map((incident: IncidentHistory) => {
                 const IconComponent = getTypeIcon(incident.type);
                 return (
                   <div
@@ -317,7 +302,7 @@ export default function HistoryPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {incident.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {incident.type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                             </h3>
                             <Badge variant={getStatusVariant(incident.status) as any}>
                               {incident.status.replace('_', ' ')}
@@ -329,7 +314,7 @@ export default function HistoryPage() {
 
                           <p className="text-gray-600 mb-3">{incident.description}</p>
 
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                             <div className="flex items-center text-gray-500">
                               <ClockIcon className="w-4 h-4 mr-1" />
                               {incident.timestamp.toLocaleString()}
@@ -338,22 +323,23 @@ export default function HistoryPage() {
                               <MapPinIcon className="w-4 h-4 mr-1" />
                               {incident.location}
                             </div>
-                            <div className="flex items-center text-gray-500">
-                              <ClockIcon className="w-4 h-4 mr-1" />
-                              Response: {formatDuration(incident.responseTime)}
-                            </div>
-                            <div className="flex items-center text-gray-500">
-                              <EyeIcon className="w-4 h-4 mr-1" />
-                              {incident.responders} responders
-                            </div>
+                            {incident.recordingFile && (
+                              <div className="flex items-center text-gray-500">
+                                {incident.type === 'weapon_detected' ? (
+                                  <VideoCameraIcon className="w-4 h-4 mr-1" />
+                                ) : (
+                                  <MicrophoneIcon className="w-4 h-4 mr-1" />
+                                )}
+                                Recording Available
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 ml-4">
-                        <Link href={`/live/${incident.id}`}>
+                      <div className="flex-shrink-0 ml-4 space-x-2">
+                        <Link href={`/dashboard/history/${incident.id}`}>
                           <Button variant="outline" size="sm">
-                            <EyeIcon className="w-4 h-4 mr-1" />
                             View Details
                           </Button>
                         </Link>

@@ -280,7 +280,7 @@ export default function ContactsPage() {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-start">
                   <Badge variant="danger" className="mr-2 mt-0.5">0</Badge>
-                  Emergency Services (911, Police, Fire)
+                  Emergency Services (100, Police, Fire)
                 </li>
                 <li className="flex items-start">
                   <Badge variant="warning" className="mr-2 mt-0.5">1-2</Badge>
