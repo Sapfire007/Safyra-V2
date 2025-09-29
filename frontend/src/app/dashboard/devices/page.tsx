@@ -787,7 +787,7 @@ export default function DevicesPage() {
         </Card>
       </div>
 
-      {/* System Health & Troubleshooting */}
+      {/* System Health & Troubleshooting
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -871,7 +871,7 @@ export default function DevicesPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Hardware Devices */}
       <Card>

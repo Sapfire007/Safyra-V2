@@ -6,7 +6,16 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
+const Logo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center ${className}`}>
+    <ShieldCheckIcon className="h-8 w-8 text-safyra-gold" />
+    <span className="ml-2 text-2xl font-bold text-safyra-gold">Safyra</span>
+  </div>
+);
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,7 +25,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
   });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
@@ -52,7 +61,7 @@ export default function RegisterPage() {
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     try {
       await register({
         name: formData.name,
@@ -65,131 +74,154 @@ export default function RegisterPage() {
     } catch (error) {
       toast.error('Failed to create account');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Create your account
-        </h2>
-        <p className="text-gray-600 mb-8">
-          Join thousands of women who trust Safyra for their personal safety.
-        </p>
+    <div className="min-h-screen bg-safyra-navy flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Spline Background */}
+      <div className="absolute inset-0 z-0">
+        <iframe
+          src='https://my.spline.design/flowingribbon-tWPCrztuM8PIDU4SaZrBPW3b/'
+          frameBorder='0'
+          width='100%'
+          height='100%'
+          title="Flowing Ribbon Background"
+        />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Input
-          label="Full name"
-          name="name"
-          type="text"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="Enter your full name"
-          required
-        />
+      <div className="w-full max-w-md z-10">
+        <div className="flex justify-center mb-8">
+          <Logo className="h-20 w-auto" />
+        </div>
 
-        <Input
-          label="Email address"
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Enter your email"
-          required
-        />
+        <Card className="border-safyra-gold/20 bg-white/90 backdrop-blur-sm">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl text-safyra-navy">Create Account</CardTitle>
+            <CardDescription>Join thousands who trust Safyra for their safety</CardDescription>
+          </CardHeader>
 
-        <Input
-          label="Phone number"
-          name="phone"
-          type="tel"
-          value={formData.phone}
-          onChange={handleChange}
-          placeholder="Enter your phone number"
-          required
-        />
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium text-safyra-navy">
+                  Full Name
+                </label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
 
-        <Input
-          label="Password"
-          name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Create a strong password"
-          required
-        />
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-safyra-navy">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
 
-        <Input
-          label="Confirm password"
-          name="confirmPassword"
-          type="password"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          placeholder="Confirm your password"
-          required
-        />
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium text-safyra-navy">
+                  Phone
+                </label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
 
-        <div className="flex items-start">
-          <div className="flex items-center h-5">
-            <input
-              id="terms"
-              name="terms"
-              type="checkbox"
-              checked={agreeToTerms}
-              onChange={(e) => setAgreeToTerms(e.target.checked)}
-              className="h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300 rounded"
-            />
-          </div>
-          <div className="ml-3 text-sm">
-            <label htmlFor="terms" className="text-gray-700">
-              I agree to the{' '}
-              <Link href="/terms" className="text-rose-600 hover:text-rose-500">
-                Terms and Conditions
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="text-rose-600 hover:text-rose-500">
-                Privacy Policy
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-safyra-navy">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-safyra-navy">
+                  Confirm Password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <input
+                  id="terms"
+                  name="terms"
+                  type="checkbox"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="h-4 w-4 text-safyra-gold focus:ring-safyra-gold border-safyra-navy/30 rounded mt-1"
+                />
+                <label htmlFor="terms" className="text-xs text-safyra-navy">
+                  I agree to the{' '}
+                  <Link href="/terms" className="text-safyra-gold hover:underline">
+                    Terms and Conditions
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="text-safyra-gold hover:underline">
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-rose-500 text-white hover:bg-rose-600/90 transition-transform hover:scale-[1.02]"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating account...' : 'Create Account'}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <Link href="/auth/login" className="text-sm text-safyra-navy hover:text-safyra-gold">
+                Already have an account? Sign in
               </Link>
-            </label>
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full"
-          size="lg"
-          disabled={loading}
-        >
-          {loading ? 'Creating account...' : 'Create account'}
-        </Button>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or sign up with</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="w-full">
-            Google
-          </Button>
-          <Button variant="outline" className="w-full">
-            Apple
-          </Button>
-        </div>
-      </form>
-
-      <p className="mt-8 text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link href="/auth/login" className="font-medium text-rose-600 hover:text-rose-500">
-          Sign in
-        </Link>
-      </p>
-    </>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

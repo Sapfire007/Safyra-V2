@@ -1,121 +1,130 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../components/providers/AuthProvider';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
+const Logo = ({ className }: { className?: string }) => (
+  <div className={`flex items-center ${className}`}>
+    <ShieldCheckIcon className="h-8 w-8 text-safyra-gold" />
+    <span className="ml-2 text-2xl font-bold text-safyra-gold">Safyra</span>
+  </div>
+);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkAuth = () => {
+      // This would typically check your auth state
+      // For now, we'll just handle it in the auth provider
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     try {
       await login(email, password);
-      toast.success('Welcome back!');
-      router.push('/dashboard');
+      toast.success('Login successful');
+      router.push('/');
     } catch (error) {
       toast.error('Invalid credentials');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back
-        </h2>
-        <p className="text-gray-600 mb-8">
-          Sign in to your Safyra account to access your safety dashboard.
-        </p>
+    <div className="min-h-screen bg-safyra-navy flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Spline Background */}
+      <div className="absolute inset-0 z-0">
+        <iframe
+          src='https://my.spline.design/flowingribbon-tWPCrztuM8PIDU4SaZrBPW3b/'
+          frameBorder='0'
+          width='100%'
+          height='100%'
+          title="Flowing Ribbon Background"
+        />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Input
-          label="Email address"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          required
-        />
-
-        <Input
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your password"
-          required
-        />
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300 rounded"
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-              Remember me
-            </label>
-          </div>
-
-          <Link href="/auth/forgot-password" className="text-sm text-rose-600 hover:text-rose-500">
-            Forgot your password?
-          </Link>
+      <div className="w-full max-w-md z-10">
+        <div className="flex justify-center mb-8">
+          <Logo className="h-20 w-auto" />
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          size="lg"
-          disabled={loading}
-        >
-          {loading ? 'Signing in...' : 'Sign in'}
-        </Button>
+        <Card className="border-safyra-gold/20 bg-white/90 backdrop-blur-sm">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl text-safyra-navy">Welcome Back</CardTitle>
+            <CardDescription>Enter your credentials to access your account</CardDescription>
+          </CardHeader>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
-          </div>
-        </div>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-safyra-navy">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="w-full">
-            Google
-          </Button>
-          <Button variant="outline" className="w-full">
-            Apple
-          </Button>
-        </div>
-      </form>
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-safyra-navy">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="border-safyra-navy/30 focus:border-safyra-gold"
+                />
+              </div>
 
-      <p className="mt-8 text-center text-sm text-gray-600">
-        Don't have an account?{' '}
-        <Link href="/auth/register" className="font-medium text-rose-600 hover:text-rose-500">
-          Sign up for free
-        </Link>
-      </p>
-    </>
+              <Button
+                type="submit"
+                className="w-full bg-rose-500 text-white hover:bg-rose-600/90 transition-transform hover:scale-[1.02]"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <Link href="/auth/register" className="text-sm text-safyra-navy hover:text-safyra-gold">
+                Don't have an account? Sign up
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

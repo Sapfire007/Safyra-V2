@@ -1,351 +1,380 @@
+
 'use client';
 
-import React from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import {
-  ShieldCheckIcon,
-  MapPinIcon,
-  VideoCameraIcon,
-  BellAlertIcon,
-  PhoneIcon,
-  CheckCircleIcon,
-  ArrowRightIcon
-} from '@heroicons/react/24/outline';
-import { Button } from './ui/Button';
+import { Bell, Diamond, Users, Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function LandingPage() {
-  const features = [
-    {
-      icon: ShieldCheckIcon,
-      title: 'Weapon Detection',
-      description: 'Advanced AI-powered hardware detects weapons and potential threats in real-time.',
-    },
-    {
-      icon: VideoCameraIcon,
-      title: 'Live Media Capture',
-      description: 'Instant video and audio recording with secure cloud streaming to trusted contacts.',
-    },
-    {
-      icon: MapPinIcon,
-      title: 'Real-time Location',
-      description: 'GPS tracking with live location sharing to emergency services and contacts.',
-    },
-    {
-      icon: BellAlertIcon,
-      title: 'Automated Alerts',
-      description: 'Immediate notifications to emergency services and pre-configured contacts.',
-    },
-  ];
-
-  const testimonials = [
-    {
-      name: 'Sarah M.',
-      role: 'College Student',
-      content: 'Safyra gives me peace of mind when walking alone at night. The instant alerts to my family make me feel protected.',
-    },
-    {
-      name: 'Jessica L.',
-      role: 'Working Professional',
-      content: 'The weapon detection feature is incredible. It activated when I needed it most and help arrived within minutes.',
-    },
-    {
-      name: 'Maria R.',
-      role: 'Mother of Two',
-      content: 'As a single mom, Safyra helps me feel secure. The live streaming feature lets my sister know I\'m safe during late commutes.',
-    },
-  ];
-
+// Hero Section Component
+const HeroSection = () => {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <ShieldCheckIcon className="h-8 w-8 text-rose-600" />
-              <span className="ml-2 text-2xl font-bold text-gray-900">Safyra</span>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-700 hover:text-rose-600 transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-700 hover:text-rose-600 transition-colors">How It Works</a>
-              <a href="#testimonials" className="text-gray-700 hover:text-rose-600 transition-colors">Testimonials</a>
-              <a href="#pricing" className="text-gray-700 hover:text-rose-600 transition-colors">Pricing</a>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/auth/login">
-                <Button variant="outline" size="sm">Sign In</Button>
-              </Link>
-              <Link href="/auth/register">
-                <Button size="sm">Get Started</Button>
-              </Link>
-            </div>
-          </div>
-        </nav>
-      </header>
+    <section className="relative h-screen min-h-[600px] flex items-center pt-16">
+      {/* Background image */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src="https://images.unsplash.com/photo-1545622783-b3e021430fee?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80"
+          alt="Woman wearing elegant jewelry"
+          className="w-full h-full object-cover"
+        />
+      </div>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-rose-50 to-pink-100 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                Your Personal
-                <span className="text-rose-600"> Safety Guardian</span>
-              </h1>
-              <p className="text-xl text-gray-600 mt-6 leading-relaxed">
-                Advanced weapon detection, live media streaming, and automated emergency response.
-                Safyra provides comprehensive protection when you need it most.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Link href="/auth/register">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Start Free Trial
-                    <ArrowRightIcon className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  Watch Demo
-                </Button>
-              </div>
-              <div className="flex items-center mt-8 text-sm text-gray-500">
-                <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                <span>30-day free trial • No credit card required • Cancel anytime</span>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative"
-            >
-              <div className="bg-white rounded-2xl shadow-2xl p-8">
-                <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <VideoCameraIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 font-medium">Live Safety Dashboard</p>
-                  </div>
-                </div>
-                <div className="mt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Device Status</span>
-                    <div className="flex items-center">
-                      <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
-                      <span className="text-sm font-medium text-green-600">Active</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Emergency Contacts</span>
-                    <span className="text-sm font-medium">3 Configured</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Location Services</span>
-                    <div className="flex items-center">
-                      <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
-                      <span className="text-sm font-medium text-green-600">Enabled</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+      {/* Content */}
+      <div className="container mx-auto px-4 relative z-20">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 animate-fade-in"
+            style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)' }}
+          >
+            Empower Your Safety with Safyra
+          </h1>
+          <p
+            className="text-xl md:text-2xl text-white mb-8 animate-slide-up"
+            style={{ animationDelay: '200ms', textShadow: '1px 1px 3px rgba(0,0,0,0.6)' }}
+          >
+            Smart jewelry that protects and empowers
+          </p>
+          <Link
+            href="/dashboard"
+            className="cta-button inline-block animate-slide-up"
+            style={{ animationDelay: '400ms' }}
+          >
+            Discover Our Collection
+          </Link>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+};
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Comprehensive Safety Features
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Safyra combines cutting-edge technology with intuitive design to provide
-              unparalleled personal safety protection.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="bg-rose-100 rounded-full p-4 w-16 h-16 mx-auto mb-6">
-                  <feature.icon className="h-8 w-8 text-rose-600" />
+// Features Section Component
+const features = [
+  {
+    icon: Bell,
+    title: 'Real-Time Alerts',
+    description: 'Instant notifications for your safety',
+    color: 'text-safyra-navy'
+  },
+  {
+    icon: Diamond,
+    title: 'Discreet Design',
+    description: 'Elegance meets functionality',
+    color: 'text-rose-600'
+  },
+  {
+    icon: Users,
+    title: 'Community Support',
+    description: 'Connect with a trusted network',
+    color: 'text-emerald-600'
+  },
+  {
+    icon: Lightbulb,
+    title: 'Empowerment Tools',
+    description: 'Resources at your fingertips',
+    color: 'text-rose-600'
+  }
+];
+
+const FeaturesSection = () => {
+  return (
+    <section className="py-20 bg-gray-50">
+      <div className="container mx-auto px-4">
+        <h2 className="text-3xl font-bold text-safyra-navy text-center mb-16">
+          Smart Protection, Elegant Design
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feature, index) => (
+            <div
+              key={feature.title}
+              className="feature-card"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="flex flex-col items-center text-center h-full">
+                <div className={`${feature.color} mb-4`}>
+                  <feature.icon size={36} />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                <h3 className="text-xl font-bold text-safyra-navy mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600">
                   {feature.description}
                 </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              How Safyra Works
-            </h2>
-            <p className="text-xl text-gray-600">
-              Three simple steps to comprehensive safety protection
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                step: '01',
-                title: 'Setup & Configure',
-                description: 'Install the Safyra device, set up emergency contacts, and configure your safety preferences through our intuitive app.',
-              },
-              {
-                step: '02',
-                title: 'Automatic Detection',
-                description: 'Our AI continuously monitors for threats using advanced weapon detection and situational awareness technology.',
-              },
-              {
-                step: '03',
-                title: 'Instant Response',
-                description: 'When a threat is detected, Safyra immediately alerts authorities and streams live video to your emergency contacts.',
-              },
-            ].map((item, index) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.2 }}
-                className="text-center"
-              >
-                <div className="bg-rose-600 text-white rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-6">
-                  {item.step}
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {item.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Trusted by Women Everywhere
-            </h2>
-            <p className="text-xl text-gray-600">
-              Real stories from real users who trust Safyra for their safety
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-gray-50 rounded-lg p-8"
-              >
-                <p className="text-gray-600 italic mb-6 leading-relaxed">
-                  "{testimonial.content}"
-                </p>
-                <div>
-                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                  <p className="text-sm text-gray-500">{testimonial.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-rose-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to Feel Safe and Secure?
-          </h2>
-          <p className="text-xl text-rose-100 mb-8">
-            Join thousands of women who trust Safyra for their personal safety.
-            Start your free trial today.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/register">
-              <Button variant="secondary" size="lg" className="bg-white text-rose-600 hover:bg-gray-100">
-                Start Free Trial
-              </Button>
-            </Link>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-rose-600">
-              <PhoneIcon className="mr-2 h-5 w-5" />
-              Call Sales: (555) 123-4567
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <ShieldCheckIcon className="h-8 w-8 text-rose-400" />
-                <span className="ml-2 text-2xl font-bold">Safyra</span>
               </div>
-              <p className="text-gray-400 leading-relaxed">
-                Advanced personal safety technology designed specifically for women's protection and peace of mind.
-              </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Hardware</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Mobile App</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Emergency Support</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Status Page</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Company</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Safyra. All rights reserved. Made with ❤️ for women's safety.</p>
-          </div>
+          ))}
         </div>
-      </footer>
+      </div>
+    </section>
+  );
+};
+
+// Mock products data
+const productsData = [
+  {
+    id: 1,
+    name: 'Safyra Elite Ring',
+    price: '$299',
+    description: 'Elegant protection in a sophisticated ring design. Features emergency alert system with GPS tracking.',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400',
+    materials: 'Sterling Silver, Titanium Core',
+    dimensions: '18mm × 4mm × 2mm',
+    features: [
+      'Emergency SOS with GPS tracking',
+      'Discreet panic button activation',
+      'Water-resistant design',
+      '48-hour battery life',
+      'Wireless charging',
+      'Mobile app integration'
+    ]
+  },
+  {
+    id: 2,
+    name: 'Safyra Classic Bracelet',
+    price: '$249',
+    description: 'Timeless bracelet with integrated safety features. Discreet panic button and health monitoring.',
+    image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=400',
+    materials: 'Rose Gold Plated, Smart Ceramic',
+    dimensions: '190mm × 8mm × 3mm',
+    features: [
+      'Heart rate monitoring',
+      'Fall detection alerts',
+      'Emergency contact system',
+      '72-hour battery life',
+      'Adjustable sizing',
+      'Health data sync'
+    ]
+  },
+  {
+    id: 3,
+    name: 'Safyra Smart Necklace',
+    price: '$349',
+    description: 'Beautiful necklace with advanced safety technology. Voice activation and automatic alerts.',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400',
+    materials: '14K Gold Fill, Smart Glass',
+    dimensions: '450mm chain, 15mm pendant',
+    features: [
+      'Voice-activated SOS',
+      'Ambient sound detection',
+      'Location sharing',
+      'Gesture-based controls',
+      '96-hour battery life',
+      'Elegant pendant design'
+    ]
+  },
+  {
+    id: 4,
+    name: 'Safyra Active Watch',
+    price: '$399',
+    description: 'Sport-ready watch with comprehensive safety suite. Fitness tracking meets personal security.',
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+    materials: 'Aircraft Aluminum, Sapphire Glass',
+    dimensions: '42mm × 46mm × 12mm',
+    features: [
+      'Comprehensive fitness tracking',
+      'Emergency workout alerts',
+      'Real-time location sharing',
+      'Impact detection',
+      '7-day battery life',
+      'Water-resistant to 50m'
+    ]
+  }
+];
+
+// Product Showcase Component
+const ProductShowcase = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % productsData.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + productsData.length) % productsData.length);
+  };
+
+  useEffect(() => {
+    const interval = setInterval(nextSlide, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section className="py-16 bg-white">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900">Our Collection</h2>
+          <Link
+            href="/products"
+            className="px-4 py-2 border border-rose-600 text-rose-600 rounded-full hover:bg-rose-600 hover:text-white transition-colors"
+          >
+            View All Products
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {productsData.slice(0, 3).map((product) => (
+            <div key={product.id} className="product-card">
+              <div className="relative h-48 bg-gray-100">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
+                <p className="text-gray-600 mb-4">
+                  {product.description.split('.')[0]}
+                </p>
+                <div className="flex justify-between items-center mt-4">
+                  <span className="text-xl font-bold text-rose-600">{product.price}</span>
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-full hover:border-rose-600 hover:text-rose-600 transition-colors"
+                  >
+                    Learn More
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Testimonials Section Component
+const testimonials = [
+  {
+    id: 1,
+    quote: "Safyra gives me peace of mind whether I'm commuting at night or traveling solo. The elegant design means no one knows it's also my personal security system.",
+    name: "Michelle K.",
+    title: "Marketing Executive",
+    image: "https://randomuser.me/api/portraits/women/12.jpg"
+  },
+  {
+    id: 2,
+    quote: "As a college student, my Safyra bracelet makes me feel secure walking across campus late at night. It's stylish enough for everyday wear and formal events.",
+    name: "Sophia R.",
+    title: "University Student",
+    image: "https://randomuser.me/api/portraits/women/44.jpg"
+  },
+  {
+    id: 3,
+    quote: "I bought Safyra for my daughter who just moved to the city. It's the perfect combination of fashion and safety that she actually wants to wear every day.",
+    name: "Jennifer L.",
+    title: "Mother & Business Owner",
+    image: "https://randomuser.me/api/portraits/women/67.jpg"
+  }
+];
+
+const TestimonialsSection = () => {
+  return (
+    <section className="py-20 bg-gray-50">
+      <div className="container mx-auto px-4">
+        <h2 className="text-3xl font-bold text-safyra-navy text-center mb-12">
+          What Our Customers Say
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {testimonials.map((testimonial) => (
+            <div key={testimonial.id} className="testimonial-card">
+              <div className="flex flex-col items-center text-center">
+                <img
+                  src={testimonial.image}
+                  alt={testimonial.name}
+                  className="w-16 h-16 rounded-full mb-4 object-cover border-2 border-rose-600"
+                />
+                <p className="text-gray-600 italic mb-4">
+                  "{testimonial.quote}"
+                </p>
+                <h4 className="font-bold text-safyra-navy">
+                  {testimonial.name}
+                </h4>
+                <p className="text-sm text-gray-500">
+                  {testimonial.title}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// CTA Section Component
+const CtaSection = () => {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      setMessage("Thank you for joining the Safyra community!");
+      setEmail('');
+      setIsSubmitting(false);
+      setTimeout(() => setMessage(''), 3000);
+    }, 1000);
+  };
+
+  return (
+    <section className="py-20 text-white" style={{ background: 'linear-gradient(135deg, #1a237e, #e11d48)' }}>
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">
+            Join the Safyra Community
+          </h2>
+          <p className="text-gray-300 mb-8 text-lg">
+            Stay updated with our latest products, safety tips, and exclusive offers.
+          </p>
+
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email address"
+              required
+              className="flex-grow bg-white px-4 py-3 text-blue-950 border-2 border-transparent rounded-lg focus:border-rose-600 focus:outline-none transition-all duration-300"
+            />
+            <button
+              type="submit"
+              className="px-6 py-3 bg-rose-600 text-white font-bold rounded-lg transition-all duration-300 hover:bg-rose-700 disabled:opacity-70"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+            </button>
+          </form>
+
+          {message && (
+            <p className="text-green-400 mt-4">{message}</p>
+          )}
+
+          <p className="text-sm text-gray-400 mt-4">
+            We respect your privacy and will never share your information.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Main Landing Page Component
+const LandingPage = () => {
+  return (
+    <div className="min-h-screen">
+      <HeroSection />
+      <FeaturesSection />
+      <ProductShowcase />
+      <TestimonialsSection />
+      <CtaSection />
     </div>
   );
-}
+};
+
+export default LandingPage;
