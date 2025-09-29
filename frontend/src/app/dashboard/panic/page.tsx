@@ -29,13 +29,16 @@ const PanicModePage = () => {
   const [isWarning, setIsWarning] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [showSafetyMessage, setShowSafetyMessage] = useState(false);
+  const [emergencyAlert, setEmergencyAlert] = useState<string | null>(null);
+  const [isEmergencyActive, setIsEmergencyActive] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Default panic interval (30 seconds)
-  const DEFAULT_INTERVAL = 30;
-  const WARNING_THRESHOLD = 5; // seconds before timeout
+  const DEFAULT_INTERVAL = 60;
+  const WARNING_THRESHOLD = 5;
 
   // Start a new panic session
   const startPanicMode = async () => {
@@ -75,6 +78,14 @@ const PanicModePage = () => {
       setPanicSession(updatedSession);
       setTimeRemaining(DEFAULT_INTERVAL);
       setIsWarning(false);
+      setIsEmergencyActive(false);
+      setEmergencyAlert(null);
+
+      // Stop alert sound
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
 
       // Reset countdown
       if (intervalRef.current) {
@@ -144,11 +155,22 @@ const PanicModePage = () => {
 
       setPanicSession(updatedSession);
       setIsWarning(false);
+      setIsEmergencyActive(true);
 
-      console.log('EMERGENCY: Missed safety tap! Emergency alert triggered.');
+      // Create emergency alert message
+      const alertMessage = `🚨 EMERGENCY ALERT #${updatedSession.missedTaps} 🚨\n\n${user?.name} has missed a safety check-in!\n\nTime: ${new Date().toLocaleTimeString()}\nMissed Taps: ${updatedSession.missedTaps}\nSession Duration: ${formatSessionDuration(sessionDuration)}\n\n⚡ Emergency contacts are being notified immediately!\n⚡ Location services activated\n⚡ Recording started`;
 
-      // Show emergency alert to user
-      alert(`EMERGENCY ALERT: ${user?.name} may be in danger! Emergency contacts have been notified.`);
+      setEmergencyAlert(alertMessage);
+
+      console.log('🚨 EMERGENCY: Missed safety tap! Alert triggered:', updatedSession.missedTaps);
+
+      // Auto-dismiss alert after 10 seconds and show another one
+      setTimeout(() => {
+        setEmergencyAlert(null);
+        if (updatedSession.isActive) {
+          alert(`⚠️ CRITICAL: This is emergency alert #${updatedSession.missedTaps}!\n\n🆘 ${user?.name} needs help!\n📱 Emergency contacts notified\n📍 Location shared\n🎥 Recording in progress`);
+        }
+      }, 10000);
 
     } catch (error) {
       console.error('Failed to report missed tap:', error);
@@ -160,6 +182,10 @@ const PanicModePage = () => {
       };
       setPanicSession(updatedSession);
       setIsWarning(false);
+      setIsEmergencyActive(true);
+
+      // Show basic alert even if service fails
+      alert(`🚨 EMERGENCY: Safety check missed! Alert #${updatedSession.missedTaps} - Emergency contacts being notified!`);
     }
   };
 
@@ -317,14 +343,68 @@ const PanicModePage = () => {
         </Card>
       )}
 
+      {/* Emergency Alert Modal */}
+      {emergencyAlert && (
+        <div className="fixed inset-0 z-50 bg-red-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="border-red-500 shadow-2xl bg-red-50 max-w-md w-full animate-pulse">
+            <CardHeader className="bg-red-600 text-white">
+              <CardTitle className="text-center text-xl flex items-center justify-center gap-2">
+                🚨 EMERGENCY ALERT 🚨
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="text-red-800 font-semibold whitespace-pre-line">
+                  {emergencyAlert}
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      setEmergencyAlert(null);
+                      if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current.currentTime = 0;
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-700"
+                  >
+                    Acknowledge Alert
+                  </button>
+                  <button
+                    onClick={handleSafetyTap}
+                    className="px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700"
+                  >
+                    I'M SAFE NOW!
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {panicSession?.isActive && (
         <div className="space-y-6">
           {/* Status Card */}
-          <Card className="border-rose-200 shadow-md">
+          <Card className={`shadow-md ${
+            isEmergencyActive
+              ? 'border-red-500 bg-red-50'
+              : isWarning
+                ? 'border-orange-500 bg-orange-50'
+                : 'border-rose-200'
+          }`}>
             <CardHeader>
               <CardTitle className="text-center text-xl flex items-center justify-center gap-3">
-                <HeartIcon className={`h-6 w-6 ${isWarning ? 'text-red-500 animate-pulse' : 'text-rose-600'}`} />
-                Panic Mode Active
+                {isEmergencyActive ? (
+                  <>
+                    🚨 <span className="text-red-600 font-bold animate-pulse">EMERGENCY ACTIVE</span> 🚨
+                  </>
+                ) : (
+                  <>
+                    <HeartIcon className={`h-6 w-6 ${isWarning ? 'text-red-500 animate-pulse' : 'text-rose-600'}`} />
+                    Panic Mode Active
+                  </>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
@@ -365,13 +445,15 @@ const PanicModePage = () => {
               <button
                 onClick={handleSafetyTap}
                 className={`w-48 h-48 rounded-full text-white font-bold text-xl shadow-2xl transition-all duration-300 transform hover:scale-105 ${
-                  isWarning
-                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                    : 'bg-rose-600 hover:bg-rose-700'
+                  isEmergencyActive
+                    ? 'bg-green-500 hover:bg-green-600 animate-bounce border-4 border-green-300'
+                    : isWarning
+                      ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                      : 'bg-rose-600 hover:bg-rose-700'
                 }`}
               >
                 <CheckCircleIcon className="h-16 w-16 mx-auto mb-2" />
-                I'M SAFE
+                {isEmergencyActive ? "I'M SAFE!" : "I'M SAFE"}
               </button>
 
               <div className="pt-6">
