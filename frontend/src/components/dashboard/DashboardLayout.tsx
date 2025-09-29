@@ -31,7 +31,7 @@ const navigation = [
   { name: 'Incident History', href: '/dashboard/history', icon: ClockIcon },
   { name: 'Emergency Contacts', href: '/dashboard/contacts', icon: UserGroupIcon },
   { name: 'Device Simulation', href: '/dashboard/devices', icon: ShieldCheckIcon },
-  { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
+//   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

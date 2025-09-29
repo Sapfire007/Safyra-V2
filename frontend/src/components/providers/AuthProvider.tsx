@@ -55,13 +55,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const mockUser: User = {
         id: '1',
         email,
-        name: 'Sarah Johnson',
-        phone: '+1 (555) 123-4567',
+        name: 'Aadhya Sharma',
+        phone: '+91 9336974023',
         emergencyContacts: [
           {
             id: '1',
-            name: 'John Johnson',
-            phone: '+1 (555) 987-6543',
+            name: 'Chatur Sharma',
+            phone: '+91 7400740423',
             email: 'john@example.com',
             relationship: 'Spouse',
             priority: 1,
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           {
             id: '2',
             name: 'Emergency Services',
-            phone: '911',
+            phone: '100',
             email: 'emergency@city.gov',
             relationship: 'Emergency',
             priority: 0,
