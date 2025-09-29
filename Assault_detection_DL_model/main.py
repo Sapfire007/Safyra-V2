@@ -24,8 +24,8 @@ SEQUENCE_LENGTH = 16
 CLASSES_LIST = ["NonViolence", "Violence"]
 
 # Hardcoded paths
-MODEL_PATH = "MoBiLSTM_model.h5"
-VIDEO_PATH = "test_video.mp4"
+MODEL_PATH = r".\Assault_detection_DL_model\MoBiLSTM_model.h5"
+VIDEO_PATH = r".\Assault_detection_DL_model\test_video.mp4"
 
 # -------------------------------
 # Model Architecture Recreation
