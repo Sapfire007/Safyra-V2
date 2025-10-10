@@ -34,6 +34,7 @@ const navigation = [
 //   { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ];
 
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
