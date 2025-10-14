@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
 # C extensions
 *.so
 
@@ -118,4 +117,3 @@ uploads/
 results/
 *.pt
 *.weights
-logs/
